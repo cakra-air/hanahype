@@ -4,7 +4,7 @@ This is an automation tool for interacting with the Hanafuda platform on the Bas
 
 ## Features
 
-- Automated ETH deposits with gas fee optimization
+- Automated HYPE testnet deposits with gas fee optimization
 - Auto grow and garden reward collection
 - Milestone tracking and reward monitoring
 - Multi-wallet support
@@ -14,7 +14,8 @@ This is an automation tool for interacting with the Hanafuda platform on the Bas
 ## Prerequisites
 
 - Node.js v18 or higher
-- Base network wallet with ETH Base
+- HYPERLIQUID TESNET token
+- TOKEN HYPE Tesnet 1x claim/ wallet https://testnet.hyperlend.finance/dashboard
 - Hanafuda account (register at [Hanafuda Dashboard](https://hanafuda.hana.network/dashboard))
 
 ## Registration and Token Setup
