@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 
 const NETWORKS = {
     BASE: {
-      name: "HYPE",
+      name: "HYPmbtc",
       RPC_URL: "https://api.hyperliquid-testnet.xyz/evm",
       CHAIN_ID: 998,
       CONTRACT_ADDRESS: "0x9436E82E06DE8Ff202C870dD9eEa22F56c5Ac25A",
@@ -429,8 +429,8 @@ const NETWORKS = {
   
     async syncTransaction(txHash, refreshToken) {
       let authToken = await this.refreshTokenHandler(refreshToken);
-      const SYNC_DELAY = 2000; // Delay 2 detik antara retry
-      const MAX_SYNC_RETRIES = 10; // Menambah jumlah retry maksimum
+      const SYNC_DELAY = 3000; // Delay 3 detik antara retry
+      const MAX_SYNC_RETRIES = 6; // Menambah jumlah retry maksimum
   
       // Tambah delay awal untuk memberikan waktu backend memproses
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -480,8 +480,8 @@ const NETWORKS = {
             )
           );
   
-          // Refresh token setiap 3 attempt
-          if (attempt % 3 === 0) {
+          // Refresh token setiap 2 attempt
+          if (attempt % 2 === 0) {
             logger.info(
               this.colors.style(
                 `Attempting token refresh on attempt ${attempt}`,
@@ -502,7 +502,7 @@ const NETWORKS = {
             const delay = SYNC_DELAY * Math.pow(1.5, attempt - 1);
             logger.info(
               this.colors.style(
-                `Waiting ${(delay / 1000).toFixed(1)} seconds before retry...`,
+                `Waiting ${(delay / 2000).toFixed(1)} seconds before retry...`,
                 "waiting"
               )
             );
@@ -566,7 +566,8 @@ const NETWORKS = {
       amountInWei,
       index,
       total,
-      refreshToken
+      refreshToken,
+      accountNumber
     ) {
       const currentNonce = await this.web3.eth.getTransactionCount(
         fromAddress,
@@ -590,8 +591,8 @@ const NETWORKS = {
   
       logger.info(
         this.colors.style(
-          `Sending transaction ${index + 1}/${total}...`,
-          "txPending"
+      `Sending transaction #${accountNumber} ${index + 1}/${total}...`, // Format: #1 1/45
+      "txPending"
         )
       );
   
@@ -766,22 +767,22 @@ const NETWORKS = {
         }
       }
     }
-    async promptTransactionDetails() {
-      const minTx = 10; // Tentukan jumlah transaksi minimal di script (misalnya 10)
     
-      // Loop terus berjalan tanpa henti
-      while (true) {
+    async promptTransactionDetails() {
         const answers = await inquirer.prompt([
           {
             type: "number",
-            name: "maxTx",
+            name: "numTx",
             message: this.colors.style(
-              "Enter maximum number of transactions (greater than " + minTx + "):",
+              "Enter number of transactions:",
               "menuTitle"
             ),
             validate: (value) => {
-              if (value > minTx) return true;
-              return this.colors.style(`Please enter a number greater than ${minTx}`, "error");
+              if (value > 0) return true;
+              return this.colors.style(
+                "Please enter a number greater than 0",
+                "error"
+              );
             },
           },
           {
@@ -799,36 +800,67 @@ const NETWORKS = {
             type: "number",
             name: "customAmount",
             message: this.colors.style(
-              `Enter ${this.selectedNetwork.name === "Polygon" ? "POL" : "ETH"} amount to send:`,
+              `Enter ${
+                this.selectedNetwork.name === "Polygon" ? "POL" : "ETH"
+              } amount to send:`,
               "menuTitle"
             ),
             when: (answers) => !answers.useDefault,
             validate: (value) => {
               if (value > 0) return true;
-              return this.colors.style("Please enter a valid amount greater than 0", "error");
+              return this.colors.style(
+                "Please enter a valid amount greater than 0",
+                "error"
+              );
             },
           },
+          {
+            type: "confirm",
+            name: "autoRepeat",
+            message: this.colors.style(
+              "Auto repeat transaction process every 1-9 minutes?",
+              "menuTitle"
+            ),
+            default: true,
+          },
         ]);
-    
+      
         const wallets = this.readPrivateKeys();
         const refreshTokens = this.readRefreshTokens();
-    
-        // Generate random number of transactions between minTx and maxTx
-        const numTx = Math.floor(Math.random() * (answers.maxTx - minTx + 1)) + minTx;
-        console.log(`Randomly selected number of transactions: ${numTx}`);
-    
-        // Output transaksi
-        console.log({
-          numTx, // Jumlah transaksi yang dipilih secara acak
-          amountInEther: answers.useDefault
-            ? this.selectedNetwork.DEFAULT_AMOUNT
-            : answers.customAmount.toString(),
-          wallets,
-          refreshTokens,
-        });
+      
+        // Menambahkan logika acak waktu tunggu antara 30 - 60 menit
+        if (answers.autoRepeat) {
+          const minutes = Math.floor(Math.random() * (9 - 1 + 1)) + 1; // Menghasilkan waktu acak antara 30-60 menit
+          const totalSeconds = minutes * 60; // Mengonversi ke detik
+          console.log(
+            this.colors.style(`Next transaction will repeat in: ${minutes} minutes`, "waiting")
+          );
+      
+          // Mengembalikan total waktu tunggu (dalam detik)
+          return {
+            numTx: answers.numTx,
+            amountInEther: answers.useDefault
+              ? this.selectedNetwork.DEFAULT_AMOUNT
+              : answers.customAmount.toString(),
+            wallets,
+            refreshTokens,
+            autoRepeat: answers.autoRepeat,
+            waitTime: totalSeconds, // Menambahkan waktu tunggu yang acak
+          };
+        } else {
+          // Jika tidak auto repeat, kembalikan data seperti biasa
+          return {
+            numTx: answers.numTx,
+            amountInEther: answers.useDefault
+              ? this.selectedNetwork.DEFAULT_AMOUNT
+              : answers.customAmount.toString(),
+            wallets,
+            refreshTokens,
+            autoRepeat: answers.autoRepeat,
+          };
+        }
       }
-    }
-    
+     
     async promptNetwork() {
       const { network } = await inquirer.prompt([
         {
@@ -837,17 +869,11 @@ const NETWORKS = {
           message: this.colors.style("Select network:", "menuTitle"),
           choices: [
             {
-              name: this.colors.style(
-                `${NETWORKS.BASE.name} Network`,
-                "menuOption"
-              ),
+              name: this.colors.style(`${NETWORKS.BASE.name} Network`, "menuOption"),
               value: NETWORKS.BASE,
             },
             {
-              name: this.colors.style(
-                `${NETWORKS.POLYGON.name} Network`,
-                "menuOption"
-              ),
+              name: this.colors.style(`${NETWORKS.POLYGON.name} Network`, "menuOption"),
               value: NETWORKS.POLYGON,
             },
           ],
@@ -855,13 +881,10 @@ const NETWORKS = {
       ]);
       this.selectedNetwork = network;
       console.log(
-        this.colors.style(
-          `Selected network: ${this.selectedNetwork.name}`,
-          "networkInfo"
-        )
+        this.colors.style(`Selected network: ${this.selectedNetwork.name}`, "networkInfo")
       );
     }
-  
+    
     async promptMode() {
       const { mode } = await inquirer.prompt([
         {
@@ -882,46 +905,84 @@ const NETWORKS = {
       ]);
       return mode;
     }
-  
+    
     async handleTransactionMode() {
-      const { numTx, amountInEther, wallets, refreshTokens } =
+      const { numTx, amountInEther, wallets, refreshTokens, autoRepeat, waitTime } =
         await this.promptTransactionDetails();
-  
+    
       if (wallets.length === 0) {
         logger.error(
           this.colors.style("No private keys found in data.txt", "error")
         );
         process.exit(1);
       }
-  
+    
       if (refreshTokens.length === 0) {
         logger.error(
           this.colors.style("No refresh tokens found in token.txt", "error")
         );
         process.exit(1);
       }
-  
-      for (let i = 0; i < wallets.length; i++) {
-        const wallet = wallets[i];
-        const refreshToken = refreshTokens[i % refreshTokens.length];
-  
-        logger.info(
-          this.colors.style(
-            `Processing wallet: ${this.formatAddress(wallet.address)}`,
-            "accountInfo"
-          )
-        );
-        await this.executeTransactions(
-          wallet.privateKey,
-          numTx,
-          amountInEther,
-          refreshToken
+    
+      const processAccounts = async () => {
+        for (let i = 0; i < wallets.length; i++) {
+          const wallet = wallets[i];
+          const refreshToken = refreshTokens[i % refreshTokens.length];
+    
+          logger.info(
+            this.colors.style(
+              `Processing wallet #${i + 1} - Address: ${this.formatAddress(wallet.address)}`,
+              "accountInfo"
+            )
+          );
+          await this.executeTransactions(
+            wallet.privateKey,
+            numTx,
+            amountInEther,
+            refreshToken
+          );
+        }
+    
+        logger.success(this.colors.style("All wallets processed", "complete"));
+      };
+    
+      // Loop untuk auto repeat
+      if (autoRepeat) {
+        while (true) {
+          await processAccounts();
+          logger.info(
+            this.colors.style(
+              "All accounts processed. Starting cooldown...",
+              "waiting"
+            )
+          );
+    
+          const totalSeconds = waitTime; // Waktu tunggu (detik) yang sudah dihitung
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+    
+          // Menampilkan waktu cooldown
+          for (let i = totalSeconds; i > 0; i--) {
+            const mins = Math.floor(i / 60);
+            const secs = i % 60;
+            process.stdout.write(
+              `\r${this.colors.style("Cooldown", "label")}: ${this.colors.style(
+                `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`,
+                "value"
+              )}`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          process.stdout.write("\r" + " ".repeat(50) + "\r");
+        }
+      } else {
+        await processAccounts();
+        logger.success(
+          this.colors.style("One-time processing completed.", "complete")
         );
       }
-  
-      logger.success(this.colors.style("All wallets processed", "complete"));
-    }
-  
+    }    
+    
     async handleGrowGardenMode() {
       const { autoRepeat } = await inquirer.prompt([
         {
