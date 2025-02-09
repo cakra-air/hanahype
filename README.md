@@ -20,9 +20,7 @@ This is an automation tool for interacting with the Hanafuda platform on the Bas
 ## Registration and Token Setup
 
 1. Visit [Hanafuda Dashboard](https://hanafuda.hana.network/dashboard)
-2. Click on "Register"
-3. Use the invitation code: `QIV4XR`
-4. Complete the registration process
+
 
 ### Getting Your Refresh Token
 
