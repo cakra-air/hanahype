@@ -20,7 +20,9 @@ This is an automation tool for interacting with the Hanafuda platform on the Bas
 ## Registration and Token Setup
 
 1. Visit [Hanafuda Dashboard](https://hanafuda.hana.network/dashboard)
-
+2. 2. Click on "Register"
+3. Use the invitation code: `3JVWSK`
+4. Complete the registration process
 
 ### Getting Your Refresh Token
 
@@ -38,7 +40,7 @@ This is an automation tool for interacting with the Hanafuda platform on the Bas
 
 ```bash
 git clone https://github.com/cakra-air/hanahype.git
-cd Hanafuda-BOT
+cd Hanahype
 ```
 
 2. Install dependencies:
