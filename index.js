@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 
 const NETWORKS = {
     BASE: {
-      name: "HYPmbtc",
+      name: "HYPERLIQUID",
       RPC_URL: "https://api.hyperliquid-testnet.xyz/evm",
       CHAIN_ID: 998,
       CONTRACT_ADDRESS: "0x9436E82E06DE8Ff202C870dD9eEa22F56c5Ac25A",
