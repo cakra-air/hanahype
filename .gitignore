@@ -1,5 +1,5 @@
 # Object file
-*.o
-
+data.txt
+index.js
 # Ada Library Information
-*.ali
+token.txt
